@@ -1,5 +1,6 @@
 use crate::commands;
 use std::string::ToString;
+use crate::prompt::CommandStructure;
 
 pub struct Internalcommand {
     keyword: String,
@@ -14,7 +15,7 @@ pub enum CommandError {
 }
 
 impl Internalcommand {
-    pub fn new(input: String) -> Self {
+    pub fn new(input: CommandStructure) -> Self {
         let mut splitted = input.trim().split_whitespace();
         let keyword = match splitted.next() {
             Some(x) => x.to_string(),

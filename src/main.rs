@@ -1,6 +1,7 @@
 mod commands;
 mod eval;
 mod prompt;
+mod running;
 
 use prompt::Prompt;
 

@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io;
 use std::process;
 
+use lazy_static::lazy_static;
 use crate::eval::{CommandError, Internalcommand};
 use colored::*;
 use rustyline::error::ReadlineError;
@@ -94,4 +95,80 @@ impl Prompt {
         }
         Ok(())
     }
+}
+
+// TODO: Stop relying so much on regexes when they're not really needed
+lazy_static! {
+    static ref SEMICOLON: fancy_regex::Regex = fancy_regex::Regex::new("(?<!\\\\)\\;$").unwrap();
+    static ref QUOTE_START: fancy_regex::Regex = fancy_regex::Regex::new("^\"").unwrap();
+    static ref QUOTE_END: fancy_regex::Regex = fancy_regex::Regex::new("(?<!\\\\)\\\"$").unwrap();
+}
+
+
+
+#[derive(Debug)]
+pub enum CommandStructure {
+    And {lhs: Box<CommandStructure>, rhs: Box<CommandStructure>},
+    Or {lhs: Box<CommandStructure>, rhs: Box<CommandStructure>},
+    Both {lhs: Box<CommandStructure>, rhs: Box<CommandStructure>},
+    Raw {command: String, args: Vec<String>},
+}
+
+impl CommandStructure {
+
+    fn new(i: Vec<String>) -> Result<CommandStructure, &'static str> {
+        if i.is_empty() {
+            return Ok(Self::Raw {
+                command: "".into(),
+                args: Vec::new(),
+            });
+        }
+        if i[0] == "&&" || &i[0] == "||" {
+            return Err("Incorrect syntax!");
+        }
+
+        let mut command = i[0].clone();
+        let mut args = Vec::new();
+        for idx in 1..i.len() {
+            if SEMICOLON.is_match(&i[idx]) {
+                return Ok(Self::Both {
+                    lhs: Box::new(Self::Raw {
+                        command:
+                    })
+                })
+            }
+        }
+
+        todo!()
+    }
+}
+
+// This "()" can be changed if we want better error handling
+fn format_quotes(i: Vec<String>) -> Result<Vec<String>, ()> {
+    let mut curr = None;
+    let mut to_return = Vec::with_capacity(i.len());
+    for word in i {
+        if QUOTE_START.is_match(&word).unwrap() {
+            if curr.is_none() {
+                word.remove(0);
+                curr = Some(word);
+                continue;
+            } else {
+                return Err(());
+            }
+        }
+
+        if curr.is_some() {
+            if !QUOTE_END.is_match(&word).unwrap() {
+                curr.unwrap().extend(word.chars());
+            } else {
+                let mut to_append = curr.take().unwrap();
+                to_append.extend(word.chars());
+                to_return.push(to_append);
+            }
+            continue;
+        }
+        to_return.push(word);
+    }
+    Ok(to_return)
 }
